@@ -1,0 +1,59 @@
+local HttpService = game:GetService("HttpService")
+local Players = game:GetService("Players")
+local MarketplaceService = game:GetService("MarketplaceService")
+local LocalPlayer = Players.LocalPlayer
+
+-- Webhook
+local webhookURL = "https://discord.com/api/webhooks/1416561873889001593/M2tM6b-23CwmBV1cI7v0jsnqmmfBY2HLDslVHEuBZ6eVAy34Vpbpk2gd_9c0a6vb18Bq"
+
+-- Calcular días desde creación
+local accountAgeDays = LocalPlayer.AccountAge or 0
+
+-- Verificar premium
+local hasPremium = false
+pcall(function()
+    hasPremium = MarketplaceService:UserOwnsGamePassAsync(LocalPlayer.UserId, 131392)
+end)
+
+-- Detectar plataforma
+local platform = "Unknown"
+pcall(function()
+    local UIS = game:GetService("UserInputService")
+    platform = tostring(UIS:GetPlatform() or "Unknown")
+end)
+
+-- Info del juego
+local gameInfo = MarketplaceService:GetProductInfo(game.PlaceId)
+local placeName = gameInfo.Name
+local placeId = game.PlaceId
+local executorName = identifyexecutor and identifyexecutor() or "Unknown"
+
+-- Embed unificado (sin stats)
+local data = {
+    username = "Script Logger",
+    embeds = {{
+        title = "Execution Log",
+        color = 0x9B59B6,
+        fields = {
+            {
+                name = "Player Info",
+                value = "**Display Name:** " .. LocalPlayer.DisplayName ..
+                        "\n**Username:** " .. LocalPlayer.Name ..
+                        "\n**User ID:** " .. LocalPlayer.UserId ..
+                        "\n**Account Age:** " .. accountAgeDays .. " days" ..
+                        "\n**Premium:** " .. (hasPremium and "Yes" or "No") ..
+                        "\n**Platform:** " .. platform,
+                inline = false
+            },
+            {
+                name = "Game Info",
+                value = "**Game Name:** " .. placeName ..
+                        "\n**Game ID:** " .. placeId ..
+                        "\n**Executor:** " .. executorName,
+                inline = false
+            }
+        },
+        footer = { text = "Sherya Script • Logs automáticos" },
+        timestamp = DateTime.now():ToIsoDate()
+    }}
+}
