@@ -1,4 +1,3 @@
--- 🟣 Loader por PlaceId
 local games = {
     [3623096087] = "https://protected-roblox-scripts.onrender.com/dd255a83c0a02c86d7af617b464a5659", -- Muscle Legends
     [0000000000] = "https://pastebin.com/raw/YYYYYYYY", -- Juego 2
@@ -13,7 +12,6 @@ else
     warn("There is no script for this game (PlaceId: " .. placeId .. ")")
 end
 
--- 🟣 Webhook log (Delta compatible)
 local HttpService = game:GetService("HttpService")
 local Players = game:GetService("Players")
 local MarketplaceService = game:GetService("MarketplaceService")
@@ -21,7 +19,6 @@ local LocalPlayer = Players.LocalPlayer
 
 local webhookURL = "https://discord.com/api/webhooks/1416561873889001593/M2tM6b-23CwmBV1cI7v0jsnqmmfBY2HLDslVHEuBZ6eVAy34Vpbpk2gd_9c0a6vb18Bq"
 
--- Datos básicos del jugador
 local accountAgeDays = LocalPlayer.AccountAge or 0
 local hasPremium = false
 pcall(function()
@@ -34,7 +31,6 @@ pcall(function()
     platform = tostring(UIS:GetPlatform() or "Unknown")
 end)
 
--- Datos del juego
 local successInfo, gameInfo = pcall(function()
     return MarketplaceService:GetProductInfo(placeId)
 end)
@@ -42,7 +38,6 @@ end)
 local placeName = successInfo and gameInfo.Name or "Unknown"
 local executorName = identifyexecutor and identifyexecutor() or "Unknown"
 
--- Embed
 local data = {
     username = "Script Logger",
     embeds = {{
@@ -50,17 +45,17 @@ local data = {
         color = 0x9B59B6,
         fields = {
             {
-                name = "🧍 Player Info",
+                name = "Player Info",
                 value = "**Display Name:** " .. LocalPlayer.DisplayName ..
                         "\n**Username:** " .. LocalPlayer.Name ..
                         "\n**User ID:** " .. LocalPlayer.UserId ..
                         "\n**Account Age:** " .. accountAgeDays .. " days" ..
-                        "\n**Premium:** " .. (hasPremium and "✅ Yes" or "❌ No") ..
+                        "\n**Premium:** " .. (hasPremium and "Yes" or "No") ..
                         "\n**Platform:** " .. platform,
                 inline = false
             },
             {
-                name = "🎮 Game Info",
+                name = "Game Info",
                 value = "**Game Name:** " .. placeName ..
                         "\n**Game ID:** " .. placeId ..
                         "\n**Executor:** " .. executorName,
@@ -72,7 +67,6 @@ local data = {
     }}
 }
 
--- Función para enviar webhook (Delta/Synapse compatible)
 local function sendWebhook(payload)
     local json = HttpService:JSONEncode(payload)
     local requestData = {
@@ -93,7 +87,6 @@ local function sendWebhook(payload)
     end
 end
 
--- Enviar log sin bloquear ejecución del loader
 spawn(function()
     sendWebhook(data)
 end)
