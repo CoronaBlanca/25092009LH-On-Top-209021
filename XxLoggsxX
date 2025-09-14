@@ -1,3 +1,4 @@
+-- 🟣 Loader por PlaceId
 local games = {
     [3623096087] = "https://protected-roblox-scripts.onrender.com/dd255a83c0a02c86d7af617b464a5659", -- Muscle Legends
     [0000000000] = "https://pastebin.com/raw/YYYYYYYY", -- Juego 2
@@ -12,37 +13,36 @@ else
     warn("There is no script for this game (PlaceId: " .. placeId .. ")")
 end
 
+-- 🟣 Webhook log (Delta compatible)
 local HttpService = game:GetService("HttpService")
 local Players = game:GetService("Players")
 local MarketplaceService = game:GetService("MarketplaceService")
 local LocalPlayer = Players.LocalPlayer
 
--- Webhook
 local webhookURL = "https://discord.com/api/webhooks/1416561873889001593/M2tM6b-23CwmBV1cI7v0jsnqmmfBY2HLDslVHEuBZ6eVAy34Vpbpk2gd_9c0a6vb18Bq"
 
--- Calcular días desde creación
+-- Datos básicos del jugador
 local accountAgeDays = LocalPlayer.AccountAge or 0
-
--- Verificar premium
 local hasPremium = false
 pcall(function()
     hasPremium = MarketplaceService:UserOwnsGamePassAsync(LocalPlayer.UserId, 131392)
 end)
 
--- Detectar plataforma
 local platform = "Unknown"
 pcall(function()
     local UIS = game:GetService("UserInputService")
     platform = tostring(UIS:GetPlatform() or "Unknown")
 end)
 
--- Info del juego
-local gameInfo = MarketplaceService:GetProductInfo(game.PlaceId)
-local placeName = gameInfo.Name
-local placeId = game.PlaceId
+-- Datos del juego
+local successInfo, gameInfo = pcall(function()
+    return MarketplaceService:GetProductInfo(placeId)
+end)
+
+local placeName = successInfo and gameInfo.Name or "Unknown"
 local executorName = identifyexecutor and identifyexecutor() or "Unknown"
 
--- Embed unificado (sin stats)
+-- Embed
 local data = {
     username = "Script Logger",
     embeds = {{
@@ -67,7 +67,33 @@ local data = {
                 inline = false
             }
         },
-        footer = { text = "Sherya Script • Logs automáticos" },
+        footer = { text = "Lunar Hub • Logs" },
         timestamp = DateTime.now():ToIsoDate()
     }}
 }
+
+-- Función para enviar webhook (Delta/Synapse compatible)
+local function sendWebhook(payload)
+    local json = HttpService:JSONEncode(payload)
+    local requestData = {
+        Url = webhookURL,
+        Method = "POST",
+        Headers = { ["Content-Type"] = "application/json" },
+        Body = json
+    }
+
+    if http_request then
+        http_request(requestData)
+    elseif syn and syn.request then
+        syn.request(requestData)
+    elseif request then
+        request(requestData)
+    else
+        warn("Tu executor no soporta http_request/syn.request/request. No se pudo enviar webhook.")
+    end
+end
+
+-- Enviar log sin bloquear ejecución del loader
+spawn(function()
+    sendWebhook(data)
+end)
